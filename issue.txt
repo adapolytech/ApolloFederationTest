@@ -1,0 +1,73 @@
+In Apollo Federation return array with __resolveReference doesn't work properly if you want to return a array a solution 
+is create a new type.
+
+if you have User implemented by one service and post by another service
+a simple representation of User and Post Model are something like this
+
+-- User Service
+type User{
+    id: ID!
+    email: String!
+    password: String!
+}
+-- Post Service
+type Post{
+    id: ID!
+    content: String!
+    postedBy: ID!
+    date: Date
+    comments: [String]!
+} 
+
+//define a key in Post
+type Post @key(fields:"id") 
+
+//Add a field on User like
+type User{
+    id: ID!
+    email: String!
+    password: String!
+    post: [Post]!
+}
+
+extend type Post @key(fields:"id"){
+    id: ID! @external
+}
+
+This method don't work 
+Our solution is to create a new type in Post Service
+
+type PostList @key(fields: "idUser"){
+    idUser: ID!
+    posts: [Post]!
+}
+
+PostList : {
+    __resolveReference(reference){
+        //data is a array of post
+        let userPost = data.filter((p)=>{p.postedBy==reference.idUser})
+        return {idUser: reference.idUser, posts: userPost}
+    }
+}
+
+And in your User service do this 
+
+type User{
+    id: ID!
+    email: String!
+    password: String!
+    posts: PostList
+}
+
+extend type PostList @key(fields:"idUser"){
+    idUser: ID! @external
+}
+
+in User resolver
+User : {
+    posts(_parent){
+        return {__typename: "PostList", idUser: _parent.id}
+    }
+}
+
+And see if __resolveReference work with async/await functions
