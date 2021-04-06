@@ -1,3 +1,6 @@
 [submodule "events"]
 	path = events
 	url = ./events/
+[submodule "speaker"]
+	path = speaker
+	url = ./speaker
